@@ -2,3 +2,4 @@ ultralytics
 streamlit
 paho-mqtt
 pillow
+serial
