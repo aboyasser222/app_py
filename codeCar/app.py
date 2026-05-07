@@ -8,7 +8,7 @@ import paho.mqtt.client as mqtt
 
 # --- إعدادات MQTT (الجسر اللاسلكي) ---
 MQTT_BROKER = "broker.hivemq.com" # نفس الوسيط اللي فتحته في الصورة
-MQTT_BROKER = "abo_yasser_2026_robot"
+MQTT_TOPIC = "water_hyacinth_robot_yasser"
 
 def send_mqtt_command(cmd):
     try:
