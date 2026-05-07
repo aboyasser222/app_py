@@ -7,20 +7,20 @@ from PIL import Image
 import paho.mqtt.client as mqtt
 
 # إعدادات MQTT
-MQTT_BROKER = "mqtt.eclipseprojects.io"
+MQTT_BROKER = "mqtt.eclipseprojects.io" 
 MQTT_PORT = 1883
 MQTT_TOPIC = "water_hyacinth_robot_yasser"
 
-# دالة إرسال الأوامر
 def send_mqtt_command(cmd):
     try:
-        client = mqtt.Client()
-        client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        client.publish(MQTT_TOPIC, cmd)
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1) # تأكد من تحديد النسخة
+        client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
+        client.publish(MQTT_TOPIC, cmd, qos=1) # qos=1 لضمان وصول الرسالة
+        time.sleep(1) # وقت مستقطع لضمان خروج الرسالة من السيرفر
         client.disconnect()
         return True
     except Exception as e:
-        st.error(f"Error sending MQTT: {e}")
+        st.error(f"❌ فشل الإرسال: {e}")
         return False
 
 # --- واجهة Streamlit ---
