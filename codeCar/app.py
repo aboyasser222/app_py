@@ -1,160 +1,70 @@
-from flask import Flask, render_template, request, send_from_directory
+import streamlit as st
 import os
-import logging
-import time
-import atexit
 import cv2
-import serial
+import numpy as np
 from ultralytics import YOLO
-from werkzeug.utils import secure_filename
+from PIL import Image
+import paho.mqtt.client as mqtt
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-logger = logging.getLogger(__name__)
+# --- إعدادات MQTT (الجسر اللاسلكي) ---
+MQTT_BROKER = "broker.hivemq.com" # نفس الوسيط اللي فتحته في الصورة
+MQTT_TOPIC = "aqua_robot/command"
 
-app = Flask(__name__)
-
-SERIAL_PORT = "COM3"
-BAUD_RATE = 9600
-TIMEOUT = 1
-arduino = None
-
-UPLOAD_FOLDER = "static/uploads"
-RESULTS_FOLDER = "static/results"
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["RESULTS_FOLDER"] = RESULTS_FOLDER
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(RESULTS_FOLDER, exist_ok=True)
-
-CONFIDENCE_THRESHOLD = 0.80
-
-model = YOLO("best (1).pt")
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
-
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def initialize_serial():
-    global arduino
+def send_mqtt_command(cmd):
     try:
-        arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=TIMEOUT)
-        time.sleep(2)
-        arduino.reset_input_buffer()
-        arduino.reset_output_buffer()
-        logger.info(f"Successfully connected to serial port: {SERIAL_PORT}")
-    except serial.SerialException as e:
-        logger.error(f"Failed to open serial port: {e}")
-        arduino = None
+        client = mqtt.Client()
+        client.connect(MQTT_BROKER, 1883, 60)
+        client.publish(MQTT_TOPIC, cmd)
+        client.disconnect()
+        return True
+    except Exception as e:
+        st.error(f"Error sending MQTT: {e}")
+        return False
 
+# --- واجهة Streamlit ---
+st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
+st.title("🌿 نظام كشف ورد النيل والتحكم عن بُعد")
 
-def close_serial():
-    global arduino
-    if arduino and arduino.is_open:
-        try:
-            arduino.close()
-            logger.info("Serial port closed successfully.")
-        except Exception as e:
-            logger.error(f"Error while closing serial port: {e}")
+# تحميل الموديل (تأكد من وجود الملف في GitHub)
+@st.cache_resource
+def load_model():
+    # استخدم اسم الملف اللي عندك في الكود (water_hyacinth.pt)
+    return YOLO("water_hyacinth.pt") 
 
+model = load_model()
 
-def send_command(cmd: bytes):
-    if arduino and arduino.is_open:
-        try:
-            arduino.reset_input_buffer()
-            arduino.write(cmd)
-            time.sleep(0.15)
-            logger.info(f"Command sent: {cmd.decode()}")
-            return True
-        except serial.SerialException as e:
-            logger.error(f"Failed to send command: {e}")
-            return False
-    logger.warning("Serial port is not connected or is closed.")
-    return False
+uploaded_file = st.file_uploader("اختر صورة لتحليلها...", type=["jpg", "jpeg", "png"])
 
+if uploaded_file is not None:
+    # معالجة الصورة
+    image = Image.open(uploaded_file)
+    img_array = np.array(image)
+    
+    # التحليل (Inference)
+    results = model(img_array, conf=0.3)[0]
+    
+    found = False
+    max_conf = 0
+    
+    # رسم النتائج
+    for box in results.boxes:
+        conf = float(box.conf)
+        if conf > max_conf:
+            max_conf = conf
+        
+        # إذا تجاوزت الدقة 80% (حسب طلبك في الكود الأصلي)
+        if conf >= 0.80:
+            found = True
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            cv2.rectangle(img_array, (x1, y1), (x2, y2), (255, 0, 0), 5)
 
-initialize_serial()
-atexit.register(close_serial)
-
-
-@app.route("/", methods=["GET", "POST"])
-def upload_and_detect():
-    original_filename = None
-    result_filename = None
-    message = ""
-
-    if request.method == "POST":
-        if "file" not in request.files:
-            message = "No file was uploaded."
-        else:
-            file = request.files["file"]
-            if file.filename == "":
-                message = "Please select an image to upload."
-            elif file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                original_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-                file.save(original_path)
-
-                results = model(original_path, conf=0.3)[0]
-                img = cv2.imread(original_path)
-                confidences = []
-
-                for box in results.boxes:
-                    if int(box.cls) == 0:
-                        conf = float(box.conf)
-                        confidences.append(conf)
-                        x1, y1, x2, y2 = map(int, box.xyxy[0])
-                        label = f"{conf:.0%}"
-                        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 3)
-                        text_y = max(20, y1 - 10)
-                        cv2.putText(
-                            img,
-                            label,
-                            (x1, text_y),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            0.9,
-                            (0, 0, 255),
-                            3,
-                        )
-
-                result_filename = f"result_{filename}"
-                result_path = os.path.join(
-                    app.config["RESULTS_FOLDER"], result_filename
-                )
-                cv2.imwrite(result_path, img)
-                original_filename = filename
-
-                if confidences:
-                    max_conf = max(confidences)
-                    print(f"Max confidence: {max_conf:.2%}")
-                    if max_conf >= CONFIDENCE_THRESHOLD:
-                        send_command(b"F")
-                        message = f"Water hyacinth detected ({max_conf:.0%})"
-                    else:
-                        send_command(b"S")
-                        message = f"Low confidence ({max_conf:.0%} < 80%) - Ignored."
-                else:
-                    send_command(b"S")
-                    message = "No water hyacinth detected - Robot stopped."
-
-    return render_template(
-        "index.html",
-        original=original_filename,
-        result=result_filename,
-        message=message,
-    )
-
-
-@app.route("/uploads/<filename>")
-def uploaded_file(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
-
-@app.route("/results/<filename>")
-def result_file(filename):
-    return send_from_directory(app.config["RESULTS_FOLDER"], filename)
-
-
-if __name__ == "__main__":
-    app.run(debug=False, use_reloader=False)
+    # عرض النتيجة
+    st.image(img_array, caption='تحليل الروبوت', use_column_width=True)
+    
+    if found:
+        st.success(f"✅ تم اكتشاف ورد نيل بدقة ({max_conf:.0%})")
+        send_mqtt_command("F") # إرسال أمر Move Forward للابتوب
+        st.info("🚀 تم إرسال أمر التحرك للكار عبر السحاب")
+    else:
+        st.warning(f"⚠️ لم يتم الكشف بدقة كافية ({max_conf:.0%})")
+        send_mqtt_command("S") # إرسال أمر Stop
