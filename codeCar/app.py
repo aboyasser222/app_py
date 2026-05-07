@@ -6,14 +6,16 @@ from ultralytics import YOLO
 from PIL import Image
 import paho.mqtt.client as mqtt
 
+# إعدادات MQTT
 MQTT_BROKER = "mqtt.eclipseprojects.io"
 MQTT_PORT = 1883
 MQTT_TOPIC = "water_hyacinth_robot_yasser"
 
+# دالة إرسال الأوامر
 def send_mqtt_command(cmd):
     try:
         client = mqtt.Client()
-        client.connect(MQTT_BROKER, 1883, 60)
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
         client.publish(MQTT_TOPIC, cmd)
         client.disconnect()
         return True
@@ -25,15 +27,14 @@ def send_mqtt_command(cmd):
 st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
 st.title("🌿 نظام كشف ورد النيل والتحكم عن بُعد")
 
-# تحميل الموديل (تأكد من وجود الملف في GitHub)
+# تحميل الموديل
 @st.cache_resource
 def load_model():
-    # استخدم اسم الملف اللي عندك في الكود (water_hyacinth.pt)
     return YOLO("codeCar/water_hyacinth.pt") 
 
 model = load_model()
 
-uploaded_file = st.file_uploader("codeCar/static/results/result_0.jpeg.", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("ارفع صورة ورد النيل هنا للتحليل", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     # معالجة الصورة
@@ -43,42 +44,23 @@ if uploaded_file is not None:
     # التحليل (Inference)
     results = model(img_array, conf=0.3)[0]
     
-    found = False
     max_conf = 0
     
-    # رسم النتائج
+    # الحصول على أعلى دقة كشف
     for box in results.boxes:
         conf = float(box.conf)
         if conf > max_conf:
             max_conf = conf
-        
-        # إذا تجاوزت الدقة 80% (حسب طلبك في الكود الأصلي)
-        # ابحث عن السطر اللي بيحسب الدقة (الـ Confidence)
-    if confidence > 0.80:
-        # لو الدقة أعلى من 80%
-        st.success(f"✅ تم اكتشاف ورد نيل بدقة ({confidence*100:.0f}%)")
-    
-    # --- أضف الجزء الخاص بـ MQTT هنا ---
-    try:
-        import paho.mqtt.client as mqtt # تأكد من وجود الـ import في بداية الملف أو هنا
-        client = mqtt.Client()
-        client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        client.publish(MQTT_TOPIC, "F")
-        client.disconnect() 
-        st.info("🚀 تم إرسال أمر التحرك للكار عبر السحاب")
-    except Exception as e:
-        st.error(f"❌ فشل الإرسال: {e}")
-    # ----------------------------------
-else:
-    st.warning("⚠️ لم يتم اكتشاف ورد نيل بدقة كافية")
 
-    # عرض النتيجة
-    st.image(img_array, caption='تحليل الروبوت', use_column_width=True)
+    # عرض صورة التحليل
+    st.image(results.plot(), caption='نتائج تحليل الموديل', use_column_width=True)
     
-    if found:
-        st.success(f"✅ تم اكتشاف ورد نيل بدقة ({max_conf:.0%})")
-        send_mqtt_command("F") # إرسال أمر Move Forward للابتوب
-        st.info("🚀 تم إرسال أمر التحرك للكار عبر السحاب")
+    # اتخاذ القرار بناءً على الدقة
+    if max_conf > 0.80:
+        st.success(f"✅ تم اكتشاف ورد نيل بدقة ({max_conf*100:.0f}%)")
+        if send_mqtt_command("F"):
+            st.info("🚀 تم إرسال أمر التحرك (F) للكار عبر السحاب")
     else:
-        st.warning(f"⚠️ لم يتم الكشف بدقة كافية ({max_conf:.0%})")
-        send_mqtt_command("S") # إرسال أمر Stop
+        st.warning(f"⚠️ لم يتم اكتشاف ورد نيل بدقة كافية ({max_conf*100:.0f}%)")
+        send_mqtt_command("S")
+        st.info("🛑 تم إرسال أمر التوقف (S)")
