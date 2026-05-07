@@ -8,7 +8,7 @@ import paho.mqtt.client as mqtt
 
 # --- إعدادات MQTT (الجسر اللاسلكي) ---
 MQTT_BROKER = "broker.hivemq.com" # نفس الوسيط اللي فتحته في الصورة
-MQTT_TOPIC = "aqua_robot/command"
+MQTT_BROKER = "test.mosquitto.org"
 
 def send_mqtt_command(cmd):
     try:
