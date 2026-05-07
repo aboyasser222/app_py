@@ -1,0 +1,9 @@
+flask 
+os
+logging
+time
+atexit
+cv2
+serial
+ultralytics 
+werkzeug.utils 
