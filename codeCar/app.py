@@ -8,22 +8,20 @@ import paho.mqtt.client as mqtt
 
 # إعدادات MQTT
 # 1. عدل الإعدادات في بداية الملف
-MQTT_BROKER = "mqtt.eclipseprojects.io" 
-MQTT_PORT = 1883
+MQTT_BROKER = "mqtt.eclipseprojects.io"
+MQTT_PORT = 80 # استخدم بورت 80 أو 443 للهروب من الـ Firewall
 MQTT_TOPIC = "water_hyacinth_robot_yasser"
-
-# 2. استبدل دالة الإرسال بهذا الكود السريع جداً
-import paho.mqtt.publish as publish # تأكد من إضافة هذا الـ Import
 
 def send_mqtt_command(cmd):
     try:
-        # الإرسال بنظام "الطلقة الواحدة" بدون فتح وإغلاق يدوي
+        # الإرسال باستخدام Websockets
+        import paho.mqtt.publish as publish
         publish.single(
             MQTT_TOPIC, 
             payload=cmd, 
             hostname=MQTT_BROKER, 
             port=MQTT_PORT,
-            client_id="streamlit_app_yasser"
+            transport="websockets" # مهم جداً
         )
         return True
     except Exception as e:
