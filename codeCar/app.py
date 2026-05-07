@@ -29,7 +29,7 @@ st.title("🌿 نظام كشف ورد النيل والتحكم عن بُعد")
 @st.cache_resource
 def load_model():
     # استخدم اسم الملف اللي عندك في الكود (water_hyacinth.pt)
-    return YOLO("water_hyacinth.pt") 
+    return YOLO("codeCar/water_hyacinth.pt") 
 
 model = load_model()
 
