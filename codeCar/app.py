@@ -8,7 +8,7 @@ import paho.mqtt.client as mqtt
 
 # إعدادات MQTT
 # 1. عدل الإعدادات في بداية الملف
-MQTT_BROKER = "public.cloud.shiftr.io"
+MQTT_BROKER = "test.mosquitto.org"
 MQTT_PORT = 1883
 MQTT_TOPIC = "water_hyacinth_robot_yasser"
 
