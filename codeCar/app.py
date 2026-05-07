@@ -53,10 +53,24 @@ if uploaded_file is not None:
             max_conf = conf
         
         # إذا تجاوزت الدقة 80% (حسب طلبك في الكود الأصلي)
-        if conf >= 0.80:
-            found = True
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            cv2.rectangle(img_array, (x1, y1), (x2, y2), (255, 0, 0), 5)
+        # ابحث عن السطر اللي بيحسب الدقة (الـ Confidence)
+    if confidence > 0.80:
+        # لو الدقة أعلى من 80%
+        st.success(f"✅ تم اكتشاف ورد نيل بدقة ({confidence*100:.0f}%)")
+    
+    # --- أضف الجزء الخاص بـ MQTT هنا ---
+    try:
+        import paho.mqtt.client as mqtt # تأكد من وجود الـ import في بداية الملف أو هنا
+        client = mqtt.Client()
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.publish(MQTT_TOPIC, "F")
+        client.disconnect() 
+        st.info("🚀 تم إرسال أمر التحرك للكار عبر السحاب")
+    except Exception as e:
+        st.error(f"❌ فشل الإرسال: {e}")
+    # ----------------------------------
+else:
+    st.warning("⚠️ لم يتم اكتشاف ورد نيل بدقة كافية")
 
     # عرض النتيجة
     st.image(img_array, caption='تحليل الروبوت', use_column_width=True)
