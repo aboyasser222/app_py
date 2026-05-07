@@ -33,7 +33,7 @@ def load_model():
 
 model = load_model()
 
-uploaded_file = st.file_uploader("اختر صورة لتحليلها...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("codeCar/static/results/result_0.jpeg.", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     # معالجة الصورة
