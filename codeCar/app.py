@@ -6,8 +6,8 @@ from ultralytics import YOLO
 from PIL import Image
 import paho.mqtt.client as mqtt
 
-# --- إعدادات MQTT (الجسر اللاسلكي) ---
-MQTT_BROKER = "broker.hivemq.com" # نفس الوسيط اللي فتحته في الصورة
+MQTT_BROKER = "mqtt.eclipseprojects.io"
+MQTT_PORT = 1883
 MQTT_TOPIC = "water_hyacinth_robot_yasser"
 
 def send_mqtt_command(cmd):
