@@ -8,25 +8,22 @@ import paho.mqtt.client as mqtt
 
 # إعدادات MQTT
 # 1. عدل الإعدادات في بداية الملف
-MQTT_BROKER = "mqtt.eclipseprojects.io"
-MQTT_PORT = 80 # استخدم بورت 80 أو 443 للهروب من الـ Firewall
+MQTT_BROKER = "public.cloud.shiftr.io"
+MQTT_PORT = 1883
 MQTT_TOPIC = "water_hyacinth_robot_yasser"
 
 def send_mqtt_command(cmd):
     try:
-        # الإرسال باستخدام Websockets
-        import paho.mqtt.publish as publish
-        publish.single(
-            MQTT_TOPIC, 
-            payload=cmd, 
-            hostname=MQTT_BROKER, 
-            port=MQTT_PORT,
-            transport="websockets" # مهم جداً
-        )
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+        client.username_pw_set("public", "public") # لازم نفس اليوزر
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.publish(MQTT_TOPIC, cmd)
+        client.disconnect()
         return True
     except Exception as e:
         st.error(f"❌ فشل الإرسال: {e}")
         return False
+        
 # --- واجهة Streamlit ---
 st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
 st.title("🌿 نظام كشف ورد النيل والتحكم عن بُعد")
