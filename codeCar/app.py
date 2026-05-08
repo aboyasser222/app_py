@@ -4,46 +4,36 @@ from ultralytics import YOLO
 from PIL import Image
 import requests
 
-# --- الإعدادات ---
-# استبدل هذا الرابط بالرابط الذي يظهر لك في شاشة ngrok
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
 
 st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
-st.title("🌿 نظام كشف ورد النيل والتحكم عبر ngrok")
+st.title("🌿 Water Hyacinth Detection & ngrok Control System")
 
-# تحميل الموديل
 @st.cache_resource
 def load_model():
     return YOLO("best (2).pt") 
 
 model = load_model()
 
-uploaded_file = st.file_uploader("ارفع صورة ورد النيل للتحليل", type=["jpg", "jpeg", "png"])
+camera_input = st.camera_input("Take a photo to analyze")
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+if camera_input is not None:
+    image = Image.open(camera_input)
     img_array = np.array(image)
     
-    # التحليل
-    results = model(img_array, conf=0.3)[0]
-    max_conf = 0
+    results = model(img_array, conf=0.25)[0]
     
-    for box in results.boxes:
-        conf = float(box.conf)
-        if conf > max_conf:
-            max_conf = conf
-
-    # عرض النتيجة
-    st.image(results.plot(), caption='نتائج التحليل', use_column_width=True)
+    detections = results.boxes.data.tolist()
     
-    if max_conf > 0.80:
-        st.success(f"✅ تم اكتشاف ورد نيل بدقة ({max_conf*100:.0f}%)")
+    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
+    
+    if len(detections) > 0:
+        st.success(f"✅ Water Hyacinth Detected!")
         try:
-            # إرسال الأمر للابتوب عبر نفق ngrok
             response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
             if response.status_code == 200:
-                st.info("🚀 تم إرسال أمر التحرك (F) بنجاح عبر ngrok")
+                st.info("🚀 Move command (F) sent successfully via ngrok")
         except Exception as e:
-            st.error(f"❌ فشل الاتصال باللابتوب: تأكد أن ngrok وسيرفر Flask يعملان")
+            st.error(f"❌ Connection failed: Ensure ngrok and Flask server are running")
     else:
-        st.warning(f"⚠️ الدقة منخفضة ({max_conf*100:.0f}%) - لن يتم تحريك الكار")
+        st.warning(f"⚠️ No targets detected - Robot will not move")
