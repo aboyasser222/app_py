@@ -14,7 +14,7 @@ st.title("🌿 نظام كشف ورد النيل والتحكم عبر ngrok")
 # تحميل الموديل
 @st.cache_resource
 def load_model():
-    return YOLO("codeCar/best (1).pt") 
+    return YOLO("best (2).pt") 
 
 model = load_model()
 
