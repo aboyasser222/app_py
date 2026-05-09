@@ -44,7 +44,7 @@ if camera_input is not None:
 
     
 
-    results = model(img_array, conf=0.25)[0]
+    results = model(img_array, conf=0.80)[0]
 
     
 
