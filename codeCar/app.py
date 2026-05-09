@@ -39,26 +39,42 @@ if app_mode == "Manual (Take Photo)":
             except: st.error("ngrok connection failed")
 
 # --- الوضع الثاني: Live (الرصد التلقائي اللي طلبته) ---
+# --- الوضع الثاني: Live (الرصد التلقائي المعدل) ---
 elif app_mode == "Live (Auto-Detect)":
-    st.info("الرصد المباشر يعمل الآن.. أول ما يظهر ورد نيل، الروبوت هيتحرك لوحده.")
+    st.info("الرصد المباشر يعمل.. تأكد من وجود إضاءة جيدة.")
     
     class VideoProcessor(VideoProcessorBase):
+        def __init__(self):
+            # تحميل الموديل جوه الـ Processor عشان يفضل جاهز
+            self.model = model 
+
         def recv(self, frame):
+            # 1. تحويل الفريم لـ Array
             img = frame.to_ndarray(format="bgr24")
-            # معالجة الفريم (تقليل imgsz للسرعة في البث المباشر)
-            results = model(img, conf=0.40, imgsz=320, verbose=False)[0]
             
+            # 2. تصغير الصورة جداً للسرعة (هيرفع الـ FPS ويخلي الـ Detect يظهر)
+            # قللنا الـ conf لـ 0.30 عشان يلقط أسرع في الفيديو
+            results = self.model(img, conf=0.30, imgsz=256, verbose=False)[0]
+            
+            # 3. رسم المربعات
+            annotated_frame = results.plot()
+            
+            # 4. إرسال الإشارة لـ ngrok لو فيه اكتشاف
             if len(results.boxes) > 0:
-                try: requests.get(f"{NGROK_URL}/move_forward", timeout=0.1)
-                except: pass
+                try:
+                    # استخدمنا timeout صغير جداً عشان الفيديو ما يوقفش
+                    requests.get(f"{NGROK_URL}/move_forward", timeout=0.01)
+                except:
+                    pass
             
-            return frame.from_ndarray(results.plot(), format="bgr24")
+            # 5. إرجاع الصورة المرسومة للمتصفح
+            return frame.from_ndarray(annotated_frame, format="bgr24")
 
     webrtc_streamer(
         key="hyacinth-live",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=VideoProcessor,
+        video_processor_factory=VideoProcessor, # تأكد إن الاسم مطابق هنا
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True
     )
