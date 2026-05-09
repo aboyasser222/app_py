@@ -4,44 +4,41 @@ from ultralytics import YOLO
 from PIL import Image
 import requests
 
-# 1. الإعدادات الأساسية
-# تأكد من تحديث الرابط لو فتحت نفق ngrok جديد
+# 1. إعدادات ngrok والـ Model
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
 
-st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
-st.title("🌿 Water Hyacinth Detection System")
-
-# 2. تحميل الموديل (تأكد أن اسم الملف مطابق تماماً لما هو مرفوع على GitHub)
 @st.cache_resource
 def load_model():
-    # استعمل اسم الملف اللي كان شغال معاك (سواء v4 أو غيره)
-    return YOLO("best_v4.pt") 
+    # تأكد إنك سميت ملف Version 4 باسم "best_v4.pt" وحطيته في الفولدر
+    return YOLO("best (2).pt") 
 
 model = load_model()
 
-# 3. مكون الكاميرا
+st.title("🌿 Water Hyacinth Detection (V4 Optimized)")
+
+# 2. إدخال الصورة
 camera_input = st.camera_input("Take a photo to analyze")
 
 if camera_input is not None:
-    # تحويل الصورة المعطاة من المتصفح
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    # عملية التوقع البسيطة (Inference)
-    results = model(img_array, conf=0.25)[0] 
+    # --- السطر اللي سألت عليه هنا ---
+    # رفعنا الـ conf لـ 0.35 عشان نقلل الغلط
+    # فعلنا augment=True عشان الموديل "يدقق" أكتر في تفاصيل الورق
+    results = model(img_array, conf=0.35, augment=True)[0]
+    # -------------------------------
     
-    # عرض الصورة وعليها مربعات الاكتشاف
-    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
+    # عرض النتيجة
+    st.image(results.plot(), caption='V4 Analysis', use_column_width=True)
     
-    # 4. منطق إرسال الأوامر للروبوت
+    # منطق الحركة
     if len(results.boxes) > 0:
-        st.success("✅ Water Hyacinth Detected!")
+        st.success("✅ Water Hyacinth Found!")
         try:
-            # إرسال طلب التحرك للأمام
-            response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
-            if response.status_code == 200:
-                st.toast("🚀 Signal Sent to Robot", icon="✅")
-        except Exception:
-            st.error("❌ Connection failed: Check ngrok and local server")
+            requests.get(f"{NGROK_URL}/move_forward", timeout=2)
+            st.toast("Command Sent: Move Forward")
+        except:
+            st.error("Connection to ngrok failed")
     else:
-        st.warning("⚠️ No targets detected")
+        st.warning("⚠️ Area Clear")
