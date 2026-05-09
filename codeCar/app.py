@@ -11,7 +11,7 @@ st.title("🌿 Water Hyacinth Detection & ngrok Control System")
 
 @st.cache_resource
 def load_model():
-    return YOLO("best (3).pt") 
+    return YOLO("best (2).pt") 
 
 model = load_model()
 
