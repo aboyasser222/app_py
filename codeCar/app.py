@@ -14,7 +14,7 @@ st.title("🌿 Water Hyacinth Detection System")
 @st.cache_resource
 def load_model():
     # تأكد أن اسم الملف مطابق للملف الموجود عندك
-    return YOLO("best (2).pt") 
+    return YOLO("best (3).pt") 
 
 model = load_model()
 
