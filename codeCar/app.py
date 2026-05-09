@@ -1,48 +1,41 @@
 import streamlit as st
-import numpy as np
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
 from ultralytics import YOLO
-from PIL import Image
-import requests
 import cv2
+import numpy as np
+import requests
 
-# --- إعدادات ngrok ---
+# رابط ngrok الخاص بك
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
-
-st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
-st.title("🌿 Water Hyacinth Detection & ngrok Control System")
 
 @st.cache_resource
 def load_model():
-    return YOLO("best (2).pt") 
+    return YOLO("best (2).pt")
 
 model = load_model()
 
-# --- خيارات التشغيل ---
-app_mode = st.sidebar.selectbox("Choose Mode", ["Manual (Take Photo)", "Auto-Detect (Experimental)"])
+class VideoProcessor(VideoProcessorBase):
+    def recv(self, frame):
+        img = frame.to_ndarray(format="bgr24")
 
-if app_mode == "Manual (Take Photo)":
-    # الجزء القديم كما هو بدون تغيير
-    camera_input = st.camera_input("Take a photo to analyze")
+        # عمل Detect على الفريم الحالي (استخدام النسخة 4 اللي بتثق فيها)
+        results = model(img, conf=0.40, imgsz=320, verbose=False)[0] 
+        
+        annotated_frame = results.plot()
 
-    if camera_input is not None:
-        image = Image.open(camera_input)
-        img_array = np.array(image)
-        
-        # تحسين الدقة
-        results = model(img_array, conf=0.40, iou=0.45, imgsz=640, augment=True)[0]
-        
-        st.image(results.plot(), caption='Analysis Results', use_column_width=True)
-        
+        # لو لقى ورد نيل، يبعت الأمر للأردوينو
         if len(results.boxes) > 0:
-            st.success(f"✅ Water Hyacinth Detected!")
             try:
-                requests.get(f"{NGROK_URL}/move_forward", timeout=5)
-                st.info("🚀 Move command (F) sent successfully")
+                # بنستخدم timeout صغير جداً عشان البث ما يقطعش
+                requests.get(f"{NGROK_URL}/move_forward", timeout=0.1)
             except:
-                st.error("❌ Connection failed")
+                pass
 
-elif app_mode == "Auto-Detect (Experimental)":
-    st.warning("Note: Continuous detection works best when running the app locally.")
-    # ملاحظة: Streamlit Cloud بيواجه قيود في الـ Live Video
-    # هذا الجزء سيحتاج مكتبة streamlit-webrtc لو أردت فيديو حقيقي مستمر
-    st.write("To enable real-time detection without clicking, please use the Local Version or 'streamlit-webrtc'.")
+        return frame.from_ndarray(annotated_frame, format="bgr24")
+
+st.title("🌿 Live Water Hyacinth Detection")
+
+# ده الجزء اللي هيفتح الكاميرا "فيديو" مش "صورة"
+webrtc_streamer(key="example", video_processor_factory=VideoProcessor)
+
+st.write("الكاميرا الآن تعمل بشكل مستمر، سيتم إرسال الأوامر تلقائياً عند اكتشاف ورد النيل.")
