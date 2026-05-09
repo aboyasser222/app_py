@@ -3,78 +3,46 @@ import numpy as np
 from ultralytics import YOLO
 from PIL import Image
 import requests
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration, WebRtcMode
+import cv2
 
-# 1. إعدادات ngrok والـ STUN Servers
+# --- إعدادات ngrok ---
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
-RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]}]}
-)
 
 st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
-st.title("🌿 Water Hyacinth Detection System")
+st.title("🌿 Water Hyacinth Detection & ngrok Control System")
 
-# 2. تحميل الموديل
 @st.cache_resource
 def load_model():
-    return YOLO("best (3).pt") 
+    return YOLO("best (2).pt") 
 
 model = load_model()
 
-# 3. اختيار الوضع (Mode Selection)
-app_mode = st.sidebar.selectbox("Choose Operation Mode", ["Manual (Take Photo)", "Live (Auto-Detect)"])
+# --- خيارات التشغيل ---
+app_mode = st.sidebar.selectbox("Choose Mode", ["Manual (Take Photo)", "Auto-Detect (Experimental)"])
 
-# --- الوضع الأول: Manual (الكود القديم بتاعك) ---
 if app_mode == "Manual (Take Photo)":
+    # الجزء القديم كما هو بدون تغيير
     camera_input = st.camera_input("Take a photo to analyze")
+
     if camera_input is not None:
         image = Image.open(camera_input)
         img_array = np.array(image)
-        results = model(img_array, conf=0.40, imgsz=640, augment=True)[0]
+        
+        # تحسين الدقة
+        results = model(img_array, conf=0.40, iou=0.45, imgsz=640, augment=True)[0]
+        
         st.image(results.plot(), caption='Analysis Results', use_column_width=True)
         
         if len(results.boxes) > 0:
-            st.success("✅ Detected!")
-            try: requests.get(f"{NGROK_URL}/move_forward", timeout=2)
-            except: st.error("ngrok connection failed")
+            st.success(f"✅ Water Hyacinth Detected!")
+            try:
+                requests.get(f"{NGROK_URL}/move_forward", timeout=5)
+                st.info("🚀 Move command (F) sent successfully")
+            except:
+                st.error("❌ Connection failed")
 
-# --- الوضع الثاني: Live (الرصد التلقائي اللي طلبته) ---
-# --- الوضع الثاني: Live (الرصد التلقائي المعدل) ---
-elif app_mode == "Live (Auto-Detect)":
-    st.info("الرصد المباشر يعمل.. تأكد من وجود إضاءة جيدة.")
-    
-    class VideoProcessor(VideoProcessorBase):
-        def __init__(self):
-            # تحميل الموديل جوه الـ Processor عشان يفضل جاهز
-            self.model = model 
-
-        def recv(self, frame):
-            # 1. تحويل الفريم لـ Array
-            img = frame.to_ndarray(format="bgr24")
-            
-            # 2. تصغير الصورة جداً للسرعة (هيرفع الـ FPS ويخلي الـ Detect يظهر)
-            # قللنا الـ conf لـ 0.30 عشان يلقط أسرع في الفيديو
-            results = self.model(img, conf=0.30, imgsz=256, verbose=False)[0]
-            
-            # 3. رسم المربعات
-            annotated_frame = results.plot()
-            
-            # 4. إرسال الإشارة لـ ngrok لو فيه اكتشاف
-            if len(results.boxes) > 0:
-                try:
-                    # استخدمنا timeout صغير جداً عشان الفيديو ما يوقفش
-                    requests.get(f"{NGROK_URL}/move_forward", timeout=0.01)
-                except:
-                    pass
-            
-            # 5. إرجاع الصورة المرسومة للمتصفح
-            return frame.from_ndarray(annotated_frame, format="bgr24")
-
-    webrtc_streamer(
-        key="hyacinth-live",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=VideoProcessor, # تأكد إن الاسم مطابق هنا
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True
-    )
+elif app_mode == "Auto-Detect (Experimental)":
+    st.warning("Note: Continuous detection works best when running the app locally.")
+    # ملاحظة: Streamlit Cloud بيواجه قيود في الـ Live Video
+    # هذا الجزء سيحتاج مكتبة streamlit-webrtc لو أردت فيديو حقيقي مستمر
+    st.write("To enable real-time detection without clicking, please use the Local Version or 'streamlit-webrtc'.")
