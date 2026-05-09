@@ -56,7 +56,7 @@ if camera_input is not None:
     img_array = np.array(image)
     
     # 2. عملية التوقع (Inference) بالكود القديم البسيط
-    results = model(img_array, conf=0.25)[0] 
+    results = model(img_array, conf=0.25)
     
     # 3. عرض النتائج
     st.image(results.plot(), caption='Analysis Results', use_column_width=True)
