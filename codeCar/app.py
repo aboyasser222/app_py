@@ -4,89 +4,44 @@ from ultralytics import YOLO
 from PIL import Image
 import requests
 
-# 1. إعدادات ngrok والـ Model
-NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
-
-@st.cache_resource
-def load_model():
-    # تأكد إنك سميت ملف Version 4 باسم "best_v4.pt" وحطيته في الفولدر
-    return YOLO("best (2).pt") 
-
-model = load_model()
-
-st.title("🌿 Water Hyacinth Detection (V4 Optimized)")
-
-# 2. إدخال الصورة
-camera_input = st.camera_input("Take a photo to analyze")
-
-if camera_input is not None:
-    image = Image.open(camera_input)
-    img_array = np.array(image)
-    
-    # --- السطر اللي سألت عليه هنا ---
-    # رفعنا الـ conf لـ 0.35 عشان نقلل الغلط
-    # فعلنا augment=True عشان الموديل "يدقق" أكتر في تفاصيل الورق
-    import streamlit as st
-import numpy as np
-from ultralytics import YOLO
-from PIL import Image
-import requests
-
-# --- Settings ---
-# اتأكد إن الـ URL ده هو اللي طالع لك من الـ ngrok دلوقتي
+# 1. الإعدادات الأساسية
+# تأكد من تحديث الرابط لو فتحت نفق ngrok جديد
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
 
 st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
 st.title("🌿 Water Hyacinth Detection System")
 
-# Load Model
+# 2. تحميل الموديل (تأكد أن اسم الملف مطابق تماماً لما هو مرفوع على GitHub)
 @st.cache_resource
 def load_model():
-    # استعمل اسم ملف Version 4 اللي شغال معاك كويس
+    # استعمل اسم الملف اللي كان شغال معاك (سواء v4 أو غيره)
     return YOLO("best_v4.pt") 
 
 model = load_model()
 
-# Camera Input Component
+# 3. مكون الكاميرا
 camera_input = st.camera_input("Take a photo to analyze")
 
 if camera_input is not None:
-    # 1. تحويل الصورة
+    # تحويل الصورة المعطاة من المتصفح
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    # 2. عملية التوقع (Inference) بالكود القديم البسيط
-    results = model(img_array, conf=0.25)
+    # عملية التوقع البسيطة (Inference)
+    results = model(img_array, conf=0.25)[0] 
     
-    # 3. عرض النتائج
+    # عرض الصورة وعليها مربعات الاكتشاف
     st.image(results.plot(), caption='Analysis Results', use_column_width=True)
     
-    # 4. منطق الحركة
+    # 4. منطق إرسال الأوامر للروبوت
     if len(results.boxes) > 0:
-        st.success(f"✅ Water Hyacinth Detected!")
+        st.success("✅ Water Hyacinth Detected!")
         try:
-            # إرسال الأمر للأردوينو
+            # إرسال طلب التحرك للأمام
             response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
             if response.status_code == 200:
-                st.toast("🚀 Move command sent successfully!", icon="✅")
-        except Exception as e:
-            st.error("❌ Connection failed: Check ngrok and Flask server")
+                st.toast("🚀 Signal Sent to Robot", icon="✅")
+        except Exception:
+            st.error("❌ Connection failed: Check ngrok and local server")
     else:
         st.warning("⚠️ No targets detected")
-# وعشان تتأكد الموديل شايف إيه، اطبع الأسماء في الـ Console عندك:
-    print(model.names)
-    # -------------------------------
-    
-    # عرض النتيجة
-    st.image(results.plot(), caption='V4 Analysis', use_column_width=True)
-    
-    # منطق الحركة
-    if len(results.boxes) > 0:
-        st.success("✅ Water Hyacinth Found!")
-        try:
-            requests.get(f"{NGROK_URL}/move_forward", timeout=2)
-            st.toast("Command Sent: Move Forward")
-        except:
-            st.error("Connection to ngrok failed")
-    else:
-        st.warning("⚠️ Area Clear")
