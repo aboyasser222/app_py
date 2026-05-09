@@ -21,7 +21,13 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    results = model(img_array, conf=0.25)[0]
+    results = model(
+        img_array, 
+        conf=0.40,      # رفع الثقة لتقليل الاكتشافات الوهمية
+        iou=0.45,       # دمج المربعات المتداخلة للحصول على أدق نتيجة
+        imgsz=640,      # توحيد مقاس الصورة ليتناسب مع تدريب V4
+        augment=True    # تفعيل التحيليل المتعدد (TTA) لتدقيق تفاصيل الورق
+    )[0]
     
     detections = results.boxes.data.tolist()
     
