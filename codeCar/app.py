@@ -4,41 +4,36 @@ from ultralytics import YOLO
 from PIL import Image
 import requests
 
-# 1. إعدادات ngrok والـ Model
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
+
+st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
+st.title("🌿 Water Hyacinth Detection & ngrok Control System")
 
 @st.cache_resource
 def load_model():
-    # تأكد إنك سميت ملف Version 4 باسم "best_v4.pt" وحطيته في الفولدر
-    return YOLO("best (2).pt") 
+    return YOLO("best (3).pt") 
 
 model = load_model()
 
-st.title("🌿 Water Hyacinth Detection (V4 Optimized)")
-
-# 2. إدخال الصورة
 camera_input = st.camera_input("Take a photo to analyze")
 
 if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    # --- السطر اللي سألت عليه هنا ---
-    # رفعنا الـ conf لـ 0.35 عشان نقلل الغلط
-    # فعلنا augment=True عشان الموديل "يدقق" أكتر في تفاصيل الورق
-    results = model(img_array, conf=0.35, augment=True)
-    # -------------------------------
+    results = model(img_array, conf=0.25)[0]
     
-    # عرض النتيجة
-    st.image(results.plot(), caption='V4 Analysis', use_column_width=True)
+    detections = results.boxes.data.tolist()
     
-    # منطق الحركة
-    if len(results.boxes) > 0:
-        st.success("✅ Water Hyacinth Found!")
+    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
+    
+    if len(detections) > 0:
+        st.success(f"✅ Water Hyacinth Detected!")
         try:
-            requests.get(f"{NGROK_URL}/move_forward", timeout=2)
-            st.toast("Command Sent: Move Forward")
-        except:
-            st.error("Connection to ngrok failed")
+            response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
+            if response.status_code == 200:
+                st.info("🚀 Move command (F) sent successfully via ngrok")
+        except Exception as e:
+            st.error(f"❌ Connection failed: Ensure ngrok and Flask server are running")
     else:
-        st.warning("⚠️ Area Clear")
+        st.warning(f"⚠️ No targets detected - Robot will not move")
