@@ -26,7 +26,7 @@ if camera_input is not None:
     # --- السطر اللي سألت عليه هنا ---
     # رفعنا الـ conf لـ 0.35 عشان نقلل الغلط
     # فعلنا augment=True عشان الموديل "يدقق" أكتر في تفاصيل الورق
-results = model(img_array, 
+    results = model(img_array, 
                 conf=0.40,      # ارفعه لـ 0.40 عشان تضمن إنك مش بتلقط "خيال"
                 iou=0.45,       # تقليل التداخل
                 imgsz=640,      # توحيد المقاس
