@@ -26,13 +26,53 @@ if camera_input is not None:
     # --- السطر اللي سألت عليه هنا ---
     # رفعنا الـ conf لـ 0.35 عشان نقلل الغلط
     # فعلنا augment=True عشان الموديل "يدقق" أكتر في تفاصيل الورق
-    results = model(img_array, 
-                conf=0.25,       # نزلنا الـ conf شوية عشان نضمن إنه يلقط في البداية
-                iou=0.45, 
-                imgsz=640, 
-                augment=False    # اقفل الـ augment حالياً للتأكد من السرعة
-               )[0]
+    import streamlit as st
+import numpy as np
+from ultralytics import YOLO
+from PIL import Image
+import requests
 
+# --- Settings ---
+# اتأكد إن الـ URL ده هو اللي طالع لك من الـ ngrok دلوقتي
+NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
+
+st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
+st.title("🌿 Water Hyacinth Detection System")
+
+# Load Model
+@st.cache_resource
+def load_model():
+    # استعمل اسم ملف Version 4 اللي شغال معاك كويس
+    return YOLO("best_v4.pt") 
+
+model = load_model()
+
+# Camera Input Component
+camera_input = st.camera_input("Take a photo to analyze")
+
+if camera_input is not None:
+    # 1. تحويل الصورة
+    image = Image.open(camera_input)
+    img_array = np.array(image)
+    
+    # 2. عملية التوقع (Inference) بالكود القديم البسيط
+    results = model(img_array, conf=0.25)[0] 
+    
+    # 3. عرض النتائج
+    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
+    
+    # 4. منطق الحركة
+    if len(results.boxes) > 0:
+        st.success(f"✅ Water Hyacinth Detected!")
+        try:
+            # إرسال الأمر للأردوينو
+            response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
+            if response.status_code == 200:
+                st.toast("🚀 Move command sent successfully!", icon="✅")
+        except Exception as e:
+            st.error("❌ Connection failed: Check ngrok and Flask server")
+    else:
+        st.warning("⚠️ No targets detected")
 # وعشان تتأكد الموديل شايف إيه، اطبع الأسماء في الـ Console عندك:
     print(model.names)
     # -------------------------------
