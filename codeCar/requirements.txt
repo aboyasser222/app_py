@@ -1,9 +1,4 @@
-ultralytics
 streamlit
-paho-mqtt
+ultralytics
 opencv-python-headless
-pillow
 numpy
-streamlit-webrtc
-opencv-python-headless
-tornado>=6.2
