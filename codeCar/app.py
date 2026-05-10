@@ -24,7 +24,7 @@ st.title("🌿 Water Hyacinth Detection & ngrok Control System")
 
 def load_model():
 
-    return YOLO("best (2).pt") 
+    return YOLO("best (4).pt") 
 
 
 
