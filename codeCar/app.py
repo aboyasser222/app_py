@@ -29,12 +29,17 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
+    # تشغيل الموديل
     results = model(img_array, conf=0.77)[0]
     
-    detections = results.boxes.data.tolist()
+    # 💡 السطر ده "إجباري" لتغيير الاسم قبل الرسم
+    results.names[0] = "boat" 
     
-    # هنا الاسم هيظهر "boat" في الصورة بسبب التعديل اللي عملناه فوق
+    # عرض النتائج بالاسم الجديد
     st.image(results.plot(), caption='Analysis Results', use_column_width=True)
+    
+    # باقي الكود...
+    detections = results.boxes.data.tolist()
     
     if len(detections) > 0:
         # 3. تعديل رسالة النجاح
