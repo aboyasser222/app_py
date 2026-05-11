@@ -1,77 +1,47 @@
 import streamlit as st
-
 import numpy as np
-
 from ultralytics import YOLO
-
 from PIL import Image
-
 import requests
-
-
 
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
 
-
-
-st.set_page_config(page_title="Water Hyacinth Detector", layout="wide")
-
-st.title("🌿 Water Hyacinth Detection & ngrok Control System")
-
-
+# 1. تعديل عنوان الصفحة
+st.set_page_config(page_title="Boat Detector", layout="wide")
+st.title("🛥️ Boat Detection & ngrok Control System")
 
 @st.cache_resource
-
 def load_model():
-
-    return YOLO("best (5).pt") 
-
-
+    model = YOLO("best (5).pt") 
+    # 2. السطر ده بيغير اسم الكلاس رقم 0 ليكون "boat" بدلاً من "water-hyacinth"
+    # ده هيخلي الاسم اللي مرسوم على المربع في الصورة يتغير تلقائياً
+    model.names[0] = "boat" 
+    return model
 
 model = load_model()
 
-
-
 camera_input = st.camera_input("Take a photo to analyze")
 
-
-
 if camera_input is not None:
-
     image = Image.open(camera_input)
-
     img_array = np.array(image)
-
     
-
     results = model(img_array, conf=0.77)[0]
-
     
-
     detections = results.boxes.data.tolist()
-
     
-
+    # هنا الاسم هيظهر "boat" في الصورة بسبب التعديل اللي عملناه فوق
     st.image(results.plot(), caption='Analysis Results', use_column_width=True)
-
     
-
     if len(detections) > 0:
-
-        st.success(f"✅ Water Hyacinth Detected!")
-
+        # 3. تعديل رسالة النجاح
+        st.success(f"✅ Boat Detected!") 
         try:
-
             response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
-
             if response.status_code == 200:
-
                 st.info("🚀 Move command (F) sent successfully via ngrok")
-
         except Exception as e:
-
             st.error(f"❌ Connection failed: Ensure ngrok and Flask server are running")
-
     else:
-
-        st.warning(f"⚠️ No targets detected - Robot will not move")
+        # 4. تعديل رسالة التحذير
+        st.warning(f"⚠️ No boat detected - Robot will not move")
