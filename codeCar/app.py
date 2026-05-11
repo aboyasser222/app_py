@@ -12,10 +12,13 @@ st.title("🛥️ Boat Detection & ngrok Control System")
 
 @st.cache_resource
 def load_model():
+    # 1. بنعرف الموديل الأول في متغير اسمه model
     model = YOLO("best (5).pt") 
-    # 2. السطر ده بيغير اسم الكلاس رقم 0 ليكون "boat" بدلاً من "water-hyacinth"
-    # ده هيخلي الاسم اللي مرسوم على المربع في الصورة يتغير تلقائياً
+    
+    # 2. بنغير اسم الكلاس رقم 0 لـ boat قبل ما نخرج من الدالة
     model.names[0] = "boat" 
+    
+    # 3. بنرجع الموديل وهو "متعدل" جاهز
     return model
 
 model = load_model()
