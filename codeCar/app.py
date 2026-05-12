@@ -4,52 +4,51 @@ from ultralytics import YOLO
 from PIL import Image
 import requests
 
-NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev" 
+NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev"
 
-# 1. تعديل عنوان الصفحة
-st.set_page_config(page_title="Boat Detector", layout="wide")
-st.title("🛥️ Boat Detection & ngrok Control System")
+st.set_page_config(page_title="Autonomous Navigation System", layout="wide")
+st.title("🛥️ Water Hyacinth & Boat Detection System")
 
 @st.cache_resource
 def load_model():
-    # 1. بنعرف الموديل الأول في متغير اسمه model
-    model = YOLO("best (5).pt") 
-    
-    # 2. بنغير اسم الكلاس رقم 0 لـ boat قبل ما نخرج من الدالة
-    model.names[0] = "boat" 
-    
-    # 3. بنرجع الموديل وهو "متعدل" جاهز
+    model = YOLO("best (5).pt")
+    model.names[0] = "water_hyacinth"
+    model.names[1] = "boat"
     return model
 
 model = load_model()
 
-camera_input = st.camera_input("Take a photo to analyze")
+camera_input = st.camera_input("Capture image for analysis")
 
 if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    # تشغيل الموديل
     results = model(img_array, conf=0.77)[0]
-    
-    # 💡 السطر ده "إجباري" لتغيير الاسم قبل الرسم
-    results.names[0] = "boat" 
-    
-    # عرض النتائج بالاسم الجديد
     st.image(results.plot(), caption='Analysis Results', use_column_width=True)
     
-    # باقي الكود...
     detections = results.boxes.data.tolist()
     
-    if len(detections) > 0:
-        # 3. تعديل رسالة النجاح
-        st.success(f"✅ Boat Detected!") 
+    hyacinth_detected = any(int(box[5]) == 0 for box in detections)
+    boat_detected = any(int(box[5]) == 1 for box in detections)
+    
+    if boat_detected:
+        st.error("🚨 Boat Detected! Reversing and changing course...")
+        try:
+            response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
+            if response.status_code == 200:
+                st.info("Action: Move Backward command sent")
+        except:
+            st.error("Connection Error: Check ngrok and Flask server")
+            
+    elif hyacinth_detected:
+        st.success("🌿 Water Hyacinth Detected! Moving forward...")
         try:
             response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
             if response.status_code == 200:
-                st.info("🚀 Move command (F) sent successfully via ngrok")
-        except Exception as e:
-            st.error(f"❌ Connection failed: Ensure ngrok and Flask server are running")
+                st.info("Action: Move Forward command sent")
+        except:
+            st.error("Connection Error: Check ngrok and Flask server")
+            
     else:
-        # 4. تعديل رسالة التحذير
-        st.warning(f"⚠️ No boat detected - Robot will not move")
+        st.warning("⚠️ Clear path - No targets detected")
