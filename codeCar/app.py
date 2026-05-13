@@ -23,10 +23,11 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    results = model(img_array, conf=0.77)[0]
+# قللنا نسبة الثقة لـ 0.40 عشان نشوف الموديل شايف إيه
+    results = model(img_array, conf=0.40)[0]
     
-    
-    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
+    # ضفنا channels="BGR" عشان ألوان الصورة والمربعات تطلع سليمة
+    st.image(results.plot(), caption='Analysis Results', use_column_width=True, channels="BGR")
     
     detections = results.boxes.data.tolist()
     
