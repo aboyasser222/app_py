@@ -3,16 +3,21 @@ import numpy as np
 from ultralytics import YOLO
 from PIL import Image
 import requests
+import time
 
-NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev"
+LOCAL_URL = "http://127.0.0.1:5000"
 
 st.set_page_config(page_title="Autonomous Navigation System", layout="wide")
-st.title("🛥️ Detection System: Boat, Rock & Water Hyacinth")
+st.title("🛥️ Local Detection System: Boat, Rock & Water Hyacinth")
+
+if 'last_action_time' not in st.session_state:
+    st.session_state.last_action_time = 0
+
+COOLDOWN = 4.0 
 
 @st.cache_resource
 def load_model():
     model = YOLO("codeCar/best (7).pt") 
-    # إرجاع تسمية الكلاسات هنا
     model.names[0] = "boat"
     model.names[1] = "rock"
     model.names[2] = "water_hyacinth"
@@ -26,16 +31,13 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    # استخدام conf=0.40 لضمان ظهور المربعات
-    results = model(img_array, conf=0.77)[0]
+    results = model(img_array, conf=0.40)[0]
     
-    # إرجاع تسمية الكلاسات في النتائج قبل الرسم
     results.names[0] = "boat"
     results.names[1] = "rock"
     results.names[2] = "water_hyacinth"
     
-    # استخدام channels="BGR" لضبط ألوان الصورة
-    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
+    st.image(results.plot(), caption='Analysis Results', use_column_width=True, channels="BGR")
     
     detections = results.boxes.data.tolist()
     
@@ -43,33 +45,21 @@ if camera_input is not None:
     rock_detected = any(int(box[5]) == 1 for box in detections)
     hyacinth_detected = any(int(box[5]) == 2 for box in detections)
     
-    # أولوية الحركة: تجنب العقبات (الصخور والمراكب) قبل التحرك نحو الهدف
-    if rock_detected:
-        st.error("🪨 Rock Detected! Danger! Reversing...")
-        try:
-            response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
-            if response.status_code == 200:
-                st.info("Action: Move Backward command sent")
-        except:
-            st.error("Connection Error: Check ngrok and Flask server")
-            
-    elif boat_detected:
-        st.error("🚨 Boat Detected! Reversing and changing course...")
-        try:
-            response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
-            if response.status_code == 200:
-                st.info("Action: Move Backward command sent")
-        except:
-            st.error("Connection Error: Check ngrok and Flask server")
-            
+    current_time = time.time()
+    
+    if rock_detected or boat_detected:
+        if current_time - st.session_state.last_action_time > COOLDOWN:
+            try:
+                requests.get(f"{LOCAL_URL}/move_backward", timeout=2)
+                st.session_state.last_action_time = current_time
+                st.error("🚨 Hazard Detected! Reversing...")
+            except:
+                st.error("Server Offline")
     elif hyacinth_detected:
-        st.success("🌿 Water Hyacinth Detected! Moving forward...")
-        try:
-            response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
-            if response.status_code == 200:
-                st.info("Action: Move Forward command sent")
-        except:
-            st.error("Connection Error: Check ngrok and Flask server")
-            
-    else:
-        st.warning("⚠️ Clear path - No targets detected")
+        if current_time - st.session_state.last_action_time > COOLDOWN:
+            try:
+                requests.get(f"{LOCAL_URL}/move_forward", timeout=2)
+                st.session_state.last_action_time = current_time
+                st.success("🌿 Target Detected! Moving Forward...")
+            except:
+                st.error("Server Offline")
