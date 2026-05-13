@@ -4,7 +4,7 @@ from ultralytics import YOLO
 from PIL import Image
 import requests
 
-NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev"
+NGROK_URL = "http://127.0.0.1:5000"
 
 st.set_page_config(page_title="Autonomous Navigation System", layout="wide")
 st.title("🛥️ Detection System: Boat, Rock & Water Hyacinth")
