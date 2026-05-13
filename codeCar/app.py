@@ -7,12 +7,13 @@ import requests
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev"
 
 st.set_page_config(page_title="Autonomous Navigation System", layout="wide")
-st.title("🛥️ Detection System: Boat, Rock & Water Hyacinth")
+st.title("🛥️ Boat & Water Hyacinth Detection System")
 
 @st.cache_resource
 def load_model():
-    # تأكد من تغيير اسم الملف لنسخة الـ best.pt الجديدة اللي طلعت من التدريب الأخير
-    model = YOLO("codeCar/best (7).pt") 
+    model = YOLO("codeCar/best (7).pt")
+    model.names[0] = "boat"
+    model.names[1] = "water_hyacinth"
     return model
 
 model = load_model()
@@ -23,29 +24,19 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-# قللنا نسبة الثقة لـ 0.40 عشان نشوف الموديل شايف إيه
-    results = model(img_array, conf=0.40)[0]
+    results = model(img_array, conf=0.77)[0]
     
-    # ضفنا channels="BGR" عشان ألوان الصورة والمربعات تطلع سليمة
-    st.image(results.plot(), caption='Analysis Results', use_column_width=True, channels="BGR")
+    results.names[0] = "boat"
+    results.names[1] = "water_hyacinth"
+    
+    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
     
     detections = results.boxes.data.tolist()
     
     boat_detected = any(int(box[5]) == 0 for box in detections)
-    rock_detected = any(int(box[5]) == 1 for box in detections)
-    hyacinth_detected = any(int(box[5]) == 2 for box in detections)
+    hyacinth_detected = any(int(box[5]) == 1 for box in detections)
     
-    # أولوية الحركة: تجنب العقبات (الصخور والمراكب) قبل التحرك نحو الهدف
-    if rock_detected:
-        st.error("🪨 Rock Detected! Danger! Reversing...")
-        try:
-            response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
-            if response.status_code == 200:
-                st.info("Action: Move Backward command sent")
-        except:
-            st.error("Connection Error: Check ngrok and Flask server")
-            
-    elif boat_detected:
+    if boat_detected:
         st.error("🚨 Boat Detected! Reversing and changing course...")
         try:
             response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
