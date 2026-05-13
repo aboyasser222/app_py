@@ -27,7 +27,7 @@ if camera_input is not None:
     img_array = np.array(image)
     
     # استخدام conf=0.40 لضمان ظهور المربعات
-    results = model(img_array, conf=0.40)[0]
+    results = model(img_array, conf=0.77)[0]
     
     # إرجاع تسمية الكلاسات في النتائج قبل الرسم
     results.names[0] = "boat"
