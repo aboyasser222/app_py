@@ -12,7 +12,7 @@ st.title("🛥️ Detection System: Boat, Rock & Water Hyacinth")
 @st.cache_resource
 def load_model():
     model = YOLO("codeCar/best (7).pt") 
-    # إرجاع تسمية الكلاسات هنا
+    
     model.names[0] = "boat"
     model.names[1] = "rock"
     model.names[2] = "water_hyacinth"
@@ -26,15 +26,12 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    # استخدام conf=0.40 لضمان ظهور المربعات
     results = model(img_array, conf=0.77)[0]
     
-    # إرجاع تسمية الكلاسات في النتائج قبل الرسم
     results.names[0] = "boat"
     results.names[1] = "rock"
     results.names[2] = "water_hyacinth"
     
-    # استخدام channels="BGR" لضبط ألوان الصورة
     st.image(results.plot(), caption='Analysis Results', use_column_width=True)
     
     detections = results.boxes.data.tolist()
@@ -43,7 +40,7 @@ if camera_input is not None:
     rock_detected = any(int(box[5]) == 1 for box in detections)
     hyacinth_detected = any(int(box[5]) == 2 for box in detections)
     
-    # أولوية الحركة: تجنب العقبات (الصخور والمراكب) قبل التحرك نحو الهدف
+
     if rock_detected:
         st.error("🪨 Rock Detected! Danger! Reversing...")
         try:
