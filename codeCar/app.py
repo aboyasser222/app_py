@@ -3,21 +3,16 @@ import numpy as np
 from ultralytics import YOLO
 from PIL import Image
 import requests
-import time
 
 NGROK_URL = "https://autistic-revenge-unending.ngrok-free.dev"
 
 st.set_page_config(page_title="Autonomous Navigation System", layout="wide")
 st.title("🛥️ Detection System: Boat, Rock & Water Hyacinth")
 
-if 'last_action_time' not in st.session_state:
-    st.session_state.last_action_time = 0
-
-COOLDOWN = 4.0 
-
 @st.cache_resource
 def load_model():
     model = YOLO("codeCar/best (7).pt") 
+    
     model.names[0] = "boat"
     model.names[1] = "rock"
     model.names[2] = "water_hyacinth"
@@ -31,7 +26,7 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    results = model(img_array, conf=0.40)[0]
+    results = model(img_array, conf=0.77)[0]
     
     results.names[0] = "boat"
     results.names[1] = "rock"
@@ -45,33 +40,33 @@ if camera_input is not None:
     rock_detected = any(int(box[5]) == 1 for box in detections)
     hyacinth_detected = any(int(box[5]) == 2 for box in detections)
     
-    current_time = time.time()
-    
-    if rock_detected or boat_detected:
-        if current_time - st.session_state.last_action_time > COOLDOWN:
-            st.error("🚨 Hazard Detected! Initiating Escape Maneuver...")
-            try:
-                response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
-                if response.status_code == 200:
-                    st.info("Action: Escape command sent successfully")
-                    st.session_state.last_action_time = current_time
-            except:
-                st.error("Connection Error: Check ngrok and Flask server")
-        else:
-            st.warning("🔄 Boat is currently executing the escape turn, waiting...")
+
+    if rock_detected:
+        st.error("🪨 Rock Detected! Danger! Reversing...")
+        try:
+            response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
+            if response.status_code == 200:
+                st.info("Action: Move Backward command sent")
+        except:
+            st.error("Connection Error: Check ngrok and Flask server")
+            
+    elif boat_detected:
+        st.error("🚨 Boat Detected! Reversing and changing course...")
+        try:
+            response = requests.get(f"{NGROK_URL}/move_backward", timeout=5)
+            if response.status_code == 200:
+                st.info("Action: Move Backward command sent")
+        except:
+            st.error("Connection Error: Check ngrok and Flask server")
             
     elif hyacinth_detected:
-        if current_time - st.session_state.last_action_time > COOLDOWN:
-            st.success("🌿 Water Hyacinth Detected! Moving forward...")
-            try:
-                response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
-                if response.status_code == 200:
-                    st.info("Action: Move Forward command sent")
-            except:
-                st.error("Connection Error: Check ngrok and Flask server")
-        else:
-            st.warning("🔄 Waiting for previous maneuver cooldown to finish before moving forward...")
+        st.success("🌿 Water Hyacinth Detected! Moving forward...")
+        try:
+            response = requests.get(f"{NGROK_URL}/move_forward", timeout=5)
+            if response.status_code == 200:
+                st.info("Action: Move Forward command sent")
+        except:
+            st.error("Connection Error: Check ngrok and Flask server")
             
     else:
-        if current_time - st.session_state.last_action_time > COOLDOWN:
-            st.warning("⚠️ Clear path - No targets detected")
+        st.warning("⚠️ Clear path - No targets detected")
