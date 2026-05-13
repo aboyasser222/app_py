@@ -13,9 +13,6 @@ st.title("🛥️ Detection System: Boat, Rock & Water Hyacinth")
 def load_model():
     # تأكد من تغيير اسم الملف لنسخة الـ best.pt الجديدة اللي طلعت من التدريب الأخير
     model = YOLO("codeCar/best (7).pt") 
-    model.names[0] = "boat"
-    model.names[1] = "rock"
-    model.names[2] = "water_hyacinth"
     return model
 
 model = load_model()
@@ -28,9 +25,6 @@ if camera_input is not None:
     
     results = model(img_array, conf=0.77)[0]
     
-    results.names[0] = "boat"
-    results.names[1] = "rock"
-    results.names[2] = "water_hyacinth"
     
     st.image(results.plot(), caption='Analysis Results', use_column_width=True)
     
