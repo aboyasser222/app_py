@@ -11,7 +11,7 @@ st.title("🛥️ Boat & Water Hyacinth Detection System")
 
 @st.cache_resource
 def load_model():
-    model = YOLO("best (5).pt")
+    model = YOLO("codeCar/best (7).pt")
     model.names[0] = "boat"
     model.names[1] = "water_hyacinth"
     return model
