@@ -37,7 +37,7 @@ if camera_input is not None:
     results.names[1] = "rock"
     results.names[2] = "water_hyacinth"
     
-    st.image(results.plot(), caption='Analysis Results', use_column_width=True, channels="BGR")
+    st.image(results.plot(), caption='Analysis Results', use_column_width=True)
     
     detections = results.boxes.data.tolist()
     
