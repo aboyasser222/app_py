@@ -31,7 +31,7 @@ if camera_input is not None:
     image = Image.open(camera_input)
     img_array = np.array(image)
     
-    results = model(img_array, conf=0.40)[0]
+    results = model(img_array, conf=0.70)[0]
     
     results.names[0] = "boat"
     results.names[1] = "rock"
